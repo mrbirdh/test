@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8' />
+  <link href='../css/main.css' rel='stylesheet' />
+
+<!-- 인클루드 4 -->
+
+  <style>
+    .fc-event {
+      margin-top: 5px;
+      cursor: move;
+    }
+
+  </style>
+
+  <script src='../js/main.js'></script>
+  <script src='../js/ko.js'></script>
+  <script>
+
+    var calendar = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var Calendar = FullCalendar.Calendar;
+      var Draggable = FullCalendar.Draggable; // 드래그 기능
+
+      var containerEl = document.getElementById('external-events');
+      var calendarEl = document.getElementById('calendar');
+      var checkbox = document.getElementById('drop-remove');
+
+      // initialize the external events
+      // -----------------------------------------------------------------
+
+      new Draggable(containerEl, {
+        itemSelector: '.fc-event', //fc-event인 객체를 드래그 할 수 있음
+        eventData: function(eventEl) {
+          return {
+            title: eventEl.innerText
+          };
+        }
+      });
+
+      // initialize the calendar
+      // -----------------------------------------------------------------
+
+      calendar = new Calendar(calendarEl, {
+        headerToolbar: { // 헤더 파트를 정의
+          left: 'prev,next today',  // < > 오늘
+          center: 'title', //중앙에는 타이틀
+          right: 'dayGridMonth,timeGridWeek,timeGridDay' // 월 주 일
+        },
+        editable: true, // 편집 가능
+        droppable: true, // this allows things to be dropped onto the calendar
+        drop: function(info) {
+          // 체크박스를 체크했을 때
+          if (checkbox.checked) {
+            // if so, remove the element from the "Draggable Events" list
+            info.draggedEl.parentNode.removeChild(info.draggedEl);
+          }
+        },
+        locale: 'ko'
+      });
+
+      calendar.render();
+    });
+
+    //1. 전체 데이터 추출 - 끗
+    //2. ajax로 서버에 전송
+    //3. db에 저장
+    //4. 해피
+    //calendar.getEvents() -> Array 이벤트가 일어난 데이터에 대한 내용을 배열 형태로 반환함
+    function allSave() {
+      var allEvent = calendar.getEvents();
+      //최초 실행 전에는 비어있는 상태지만 for문을 돌때마다 증가함
+      var events = new Array();
+
+      //모든 이벤트의 갯수만큼 돌 것
+
+      for (var i =0; i < allEvent.length; i++) {
+        var obj = new Object();
+        //타이틀을 가지고 오는 지 확인
+        obj.title = allEvent[i]._def.title; // 이벤트 명칭
+        obj.allDay = allEvent[i]._def.allDay; // 하루종일 진행되는 이벤트인지 boolean값
+        obj.start = allEvent[i]._instance.range.start; // 언제부터 시작되는 지
+        obj.end = allEvent[i]._instance.range.end; // 언제까지 진행되는 지
+
+        events.push(obj); // json형태로 담음
+      }
+      var json_data = JSON.stringify(events); // 문자열로 서버에 보낼 것이기 때문에 문자열로 데이터 형태를 변경해 줌
+      console.log(json_data);
+
+      save_data(json_data);
+    }
+
+    //ajax 자체가 서버에 전송하는 것이기 때문에  전송할 때의 옵션이 필요 함
+    function save_data (json_data) {
+      $.ajax({
+        type: 'POST',
+        url: "html/saveData.html" ,
+        data: {"alldata":json_data},
+        dataType: 'text',
+        async: false // 동기식으로
+      })
+      .done(function (result){
+        //전송 성공
+      })
+      .fail(function (request, status, error) {
+        alert("에러 발생 : " + error);
+      })
+    }
+
+  </script>
+</head>
+<body>
+
+
+  <div id='external-events' style="float:left; width:15%; padding-right: 30px; padding-left: 20px; margin-top: 100px;" >
+
+    <p>
+      <strong>드래그해서 지정하시오.</strong>
+    </p>
+
+    <div class='fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event'>
+      <div class='fc-event-main'>현대</div>
+    </div>
+    <div class='fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event'>
+      <div class='fc-event-main'>기아</div>
+    </div>
+    <div class='fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event'>
+      <div class='fc-event-main'>쌍용</div>
+    </div>
+    <div class='fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event'>
+      <div class='fc-event-main'>쉐보레</div>
+    </div>
+    <div class='fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event'>
+      <div class='fc-event-main'>르노삼성</div>
+    </div>
+
+    <p>
+      <input type='checkbox' id='drop-remove' />
+      <label for='drop-remove'> 지정 후 제거! </label>
+    </p>
+
+  </div>
+
+  <div style="float:left; width:80%">
+    <div style="height: 30px; text-align: center; font-size: 35px; color: blue; margin-bottom: 30px; font-weight: bold">
+      <div style="height: 30px; text-align: center; font-size: 35px; color:blue; margin-bottom: 30px; font-weight: bold;">영업 관리 현황</div>
+    </div>
+    <div id='calendar'></div>
+    <div style="width:40%;float:right;text-align: right">
+      <button style="width:120px; height:40px;background-color: blue; color:white;vertical-align: middle; font-size: 17px; cursor: pointer" onclick="javascript:allSave();">
+        전체 저장
+      </button>
+    </div>
+  </div>
+</body>
+</html>
